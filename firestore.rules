@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: id, name, phone, email, role
+    //
+    // Collection: leads
+    // Fields: id, userId, score, category, status, interest, budget, timeline, createdAt
+    //
+    // Collection: conversations
+    // Fields: id, userId, messages, stage, updatedAt
+    //
+    // Collection: scholarships
+    // Fields: id, userId, percentage, marks
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "alpsingh03@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'name', 'phone', 'email']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() >= 10 && data.phone.size() <= 15 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidLead(data) {
+      return data.keys().hasAll(['userId', 'score', 'category', 'status']) &&
+             data.userId is string &&
+             data.score is number &&
+             data.category in ['Cold', 'Warm', 'Hot'] &&
+             data.status in ['New', 'Contacted', 'Converted', 'Closed'];
+    }
+
+    function isValidConversation(data) {
+      return data.keys().hasAll(['userId', 'messages', 'stage']) &&
+             data.userId is string &&
+             data.messages is list &&
+             data.stage is string;
+    }
+
+    function isValidScholarship(data) {
+      return data.keys().hasAll(['userId', 'percentage', 'marks']) &&
+             data.userId is string &&
+             data.percentage is number &&
+             data.marks is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+    }
+
+    match /leads/{leadId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isAdmin()) && isValidLead(request.resource.data);
+      allow update: if (isDocOwner() || isAdmin()) && isValidLead(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isAdmin()) && isValidConversation(request.resource.data);
+      allow update: if (isDocOwner() || isAdmin()) && isValidConversation(request.resource.data);
+    }
+
+    match /scholarships/{scholarshipId} {
+      allow read: if isDocOwner() || isAdmin();
+      allow create: if isAuthenticated() && (request.resource.data.userId == request.auth.uid || isAdmin()) && isValidScholarship(request.resource.data);
+      allow update: if (isDocOwner() || isAdmin()) && isValidScholarship(request.resource.data);
+    }
+  }
+}

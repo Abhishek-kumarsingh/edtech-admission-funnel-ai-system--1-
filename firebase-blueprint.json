@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["id", "name", "phone", "email"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Lead qualification and scoring data",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "score": { "type": "number" },
+        "category": { "type": "string", "enum": ["Cold", "Warm", "Hot"] },
+        "status": { "type": "string", "enum": ["New", "Contacted", "Converted", "Closed"] },
+        "interest": { "type": "string" },
+        "budget": { "type": "number" },
+        "timeline": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "score", "category", "status"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Chat session history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "messages": { "type": "array", "items": { "type": "object" } },
+        "stage": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "messages", "stage"]
+    },
+    "Scholarship": {
+      "title": "Scholarship",
+      "description": "Scholarship eligibility details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "percentage": { "type": "number" },
+        "marks": { "type": "number" }
+      },
+      "required": ["userId", "percentage", "marks"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Lead scoring and status"
+    },
+    "/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Chat histories"
+    },
+    "/scholarships/{scholarshipId}": {
+      "schema": "Scholarship",
+      "description": "Scholarship eligibility"
+    }
+  }
+}
